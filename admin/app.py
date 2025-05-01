@@ -19,7 +19,7 @@ app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your-secret-key')  # Use env var
 
 # MongoDB setup
 mongo_client = MongoClient(os.getenv('MONGO_URI'))
-db = mongo_client['mobile_repair_bot']
+db = mongo_client['FAQ_chatbot']
 chat_history_collection = db['chat_history']
 
 # Admin credentials (hardcoded for simplicity; use env vars or DB in production)
