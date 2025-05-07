@@ -5,7 +5,9 @@ import pymongo
 from PyPDF2 import PdfReader
 import glob
 import numpy as np
-import tiktoken 
+import tiktoken
+import base64
+from io import BytesIO
 
 load_dotenv()
 
@@ -44,7 +46,7 @@ def extract_text_from_pdf(pdf_path: str) -> str:
 def count_tokens(text: str) -> int:
     """Count the number of tokens in the text using tiktoken."""
     try:
-        encoding = tiktoken.get_encoding("cl100k_base")  # Compatible with text-embedding-3-small
+        encoding = tiktoken.get_encoding("cl100k_base")
         return len(encoding.encode(text))
     except Exception as e:
         print(f"Error counting tokens: {str(e)}")
@@ -94,7 +96,6 @@ def store_embeddings():
     for pdf_path in pdf_files:
         file_name = os.path.basename(pdf_path)
 
-        # Check if the file's embedding already exists
         if embedding_collection.find_one({"file_name": file_name}):
             print(f"Embedding for {file_name} already exists, skipping...")
             continue
@@ -104,13 +105,11 @@ def store_embeddings():
             print(f"No text extracted from {file_name}")
             continue
 
-        # Chunk the text if it's too large
         text_chunks = chunk_text(text, max_tokens=CHUNK_SIZE)
         if not text_chunks:
             print(f"No valid chunks generated for {file_name}")
             continue
 
-        # Process each chunk
         for i, chunk in enumerate(text_chunks):
             token_count = count_tokens(chunk)
             if token_count > MAX_TOKENS:
@@ -122,7 +121,6 @@ def store_embeddings():
                 print(f"Failed to generate embedding for chunk {i+1} of {file_name}")
                 continue
 
-            # Store embedding with metadata
             embedding_collection.insert_one({
                 "file_name": file_name,
                 "chunk_index": i,
@@ -146,7 +144,6 @@ def search_relevant_embeddings(user_message: str, top_k: int = 3) -> list:
     if not user_embedding:
         return []
 
-    # Fetch all embeddings from MongoDB
     embeddings = embedding_collection.find()
     similarities = []
 
@@ -155,12 +152,23 @@ def search_relevant_embeddings(user_message: str, top_k: int = 3) -> list:
         similarity = cosine_similarity(user_embedding, stored_embedding)
         similarities.append((similarity, doc["text"], doc["file_name"], doc.get("chunk_index", 0)))
 
-    # Sort by similarity and get top_k results
     similarities.sort(key=lambda x: x[0], reverse=True)
     return similarities[:top_k]
 
-def generate_llm_response(user_message: str, vectordb, llm, chat_history: list) -> str:
-    """Generate a response using the LLM with relevant embeddings."""
+def encode_image(image_file) -> str:
+    """Encode image file to base64 string."""
+    try:
+        if isinstance(image_file, BytesIO):
+            image_data = image_file.getvalue()
+        else:
+            image_data = image_file.read()
+        return base64.b64encode(image_data).decode('utf-8')
+    except Exception as e:
+        print(f"Error encoding image: {str(e)}")
+        return ""
+
+def generate_llm_response(user_message: str, vectordb, llm, chat_history: list, image_file=None) -> str:
+    """Generate a response using the LLM with relevant embeddings and optional image."""
     try:
         # Search for relevant embeddings
         relevant_docs = search_relevant_embeddings(user_message)
@@ -171,7 +179,7 @@ def generate_llm_response(user_message: str, vectordb, llm, chat_history: list) 
         # Prepare messages with mobile repair prompt and context
         messages = [{
             "role": "system",
-            "content": """You are a mobile repair expert AI. Provide clear, practical solutions for mobile phone issues, including hardware and software problems. Offer step-by-step troubleshooting, repair advice, or recommendations for when to seek professional help. Keep responses concise, accurate, and user-friendly. Use the following relevant information if applicable:\n\n""" + context
+            "content": """You are a mobile repair expert AI. Provide clear, practical solutions for mobile phone issues, including hardware and software problems. Offer step-by-step troubleshooting, repair advice, or recommendations for when to seek professional help. If an image is provided, analyze it for visible damage, error messages, or relevant details to assist with diagnostics. Keep responses concise, accurate, and user-friendly. Use the following relevant information if applicable:\n\n""" + context
         }]
 
         # Add recent chat history (last 8 messages)
@@ -179,14 +187,39 @@ def generate_llm_response(user_message: str, vectordb, llm, chat_history: list) 
             role = msg["role"]
             if role == "bot":
                 role = "assistant"
-            messages.append({
-                "role": role,
-                "content": msg["message"]
+            message_content = {"role": role, "content": []}
+            if msg.get("image_base64"):
+                message_content["content"].append({
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/jpeg;base64,{msg['image_base64']}"}
+                })
+            message_content["content"].append({
+                "type": "text",
+                "text": msg["message"]
+            })
+            messages.append(message_content)
+
+        # Prepare current user message
+        user_content = []
+        if image_file:
+            base64_image = encode_image(image_file)
+            if base64_image:
+                user_content.append({
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
+                })
+        if user_message:
+            user_content.append({
+                "type": "text",
+                "text": user_message
+            })
+        else:
+            user_content.append({
+                "type": "text",
+                "text": "Please analyze the provided image for any mobile phone issues."
             })
 
-        # Ensure current user message is included
-        if not chat_history or chat_history[-1]["message"] != user_message:
-            messages.append({"role": "user", "content": user_message})
+        messages.append({"role": "user", "content": user_content})
 
         # Call OpenAI API
         response = client.chat.completions.create(
@@ -199,6 +232,43 @@ def generate_llm_response(user_message: str, vectordb, llm, chat_history: list) 
         return response.choices[0].message.content.strip()
     except Exception as e:
         raise Exception(f"Error generating response: {str(e)}")
+
+def generate_suggestions(user_message: str) -> list:
+    """Generate follow-up questions using OpenAI based on the user's message."""
+    try:
+        prompt = f"""
+        You are a mobile repair expert AI. Based on the user's question or statement, suggest 3 follow-up questions that the user might ask next to continue the conversation. The questions should be relevant to iPhone repair, troubleshooting, or maintenance. Keep the questions concise and practical.
+
+        User's message: "{user_message}"
+
+        Provide the follow-up questions as a list of strings, like this:
+        - "Question 1?"
+        - "Question 2?"
+        - "Question 3?"
+        """
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "You are a mobile repair expert AI."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=150,
+            temperature=0.7
+        )
+        suggestions = response.choices[0].message.content.strip().split('\n')
+        # Clean up suggestions (remove bullet points and trim)
+        suggestions = [s.strip('- ').strip() for s in suggestions if s.strip()]
+        # Ensure we have exactly 3 suggestions
+        while len(suggestions) < 3:
+            suggestions.append("What are common troubleshooting steps for this issue?")
+        return suggestions[:3]
+    except Exception as e:
+        print(f"Error generating suggestions: {str(e)}")
+        return [
+            "Can you help with another device issue?",
+            "What are common troubleshooting steps for devices?",
+            "How do I back up my device data?"
+        ]
 
 if __name__ == "__main__":
     store_embeddings()

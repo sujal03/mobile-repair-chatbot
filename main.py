@@ -1,11 +1,12 @@
 from flask import Flask, render_template, request, jsonify, make_response
-from chatbot import init_components, generate_llm_response
+from chatbot import init_components, generate_llm_response, generate_suggestions
 import os
 import pymongo
 from dotenv import load_dotenv
 import uuid
 from datetime import datetime
 import logging
+from io import BytesIO
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -31,7 +32,6 @@ def init_database():
     except Exception as e:
         logger.error(f"Database initialization error: {str(e)}")
 
-# Run database initialization
 init_database()
 
 def generate_session_id():
@@ -40,11 +40,9 @@ def generate_session_id():
 
 @app.route('/', methods=['GET', 'POST'])
 def chatbot():
-    # Get or create session_id from cookie
-    session_id = request.cookies.get('session_id')
-    if not session_id:
-        session_id = generate_session_id()
-        logger.info(f"New session created: {session_id}")
+    # Always create a new session_id for GET requests (page reload)
+    session_id = generate_session_id()
+    logger.info(f"New session created: {session_id}")
 
     # Initialize components with session_id
     vectordb, _, llm = init_components(session_id)
@@ -52,8 +50,16 @@ def chatbot():
     if request.method == 'POST':
         try:
             user_message = request.form.get('user_message', '').strip()
-            if not user_message:
-                return jsonify({"error": "Please enter a message."}), 400
+            image_file = request.files.get('image')
+            if not user_message and not image_file:
+                return jsonify({"error": "Please provide a message or an image."}), 400
+
+            # Validate image file
+            if image_file:
+                if not image_file.content_type.startswith('image/'):
+                    return jsonify({"error": "Invalid file type. Please upload an image."}), 400
+                if image_file.content_length > 5 * 1024 * 1024:  # 5MB limit
+                    return jsonify({"error": "Image size exceeds 5MB limit."}), 400
 
             # Fetch or initialize chat history
             history_doc = chat_history_collection.find_one({"session_id": session_id}) or {
@@ -63,16 +69,31 @@ def chatbot():
             }
             messages = history_doc.get("messages", [])
 
-            # Add user message with timestamp
+            # Prepare user message entry
             user_message_entry = {
                 "role": "user",
-                "message": user_message,
+                "message": user_message if user_message else "Image uploaded for analysis",
                 "timestamp": datetime.utcnow()
             }
+
+            # Handle image storage (store base64 in MongoDB for simplicity)
+            if image_file:
+                image_data = BytesIO(image_file.read())
+                import base64
+                image_base64 = base64.b64encode(image_data.getvalue()).decode('utf-8')
+                user_message_entry["image_base64"] = image_base64
+                user_message_entry["image_url"] = f"data:image/jpeg;base64,{image_base64}"
+
             messages.append(user_message_entry)
 
             # Generate bot response
-            bot_response = generate_llm_response(user_message, vectordb, llm, messages)
+            bot_response = generate_llm_response(
+                user_message,
+                vectordb,
+                llm,
+                messages,
+                image_file=BytesIO(image_data.getvalue()) if image_file else None
+            )
             bot_message_entry = {
                 "role": "bot",
                 "message": bot_response,
@@ -99,9 +120,8 @@ def chatbot():
                 "timestamp": bot_message_entry["timestamp"].isoformat()
             })
 
-            # Set session_id cookie if not already set
-            if not request.cookies.get('session_id'):
-                response.set_cookie('session_id', session_id, max_age=86400 * 30)  # 30 days
+            # Set session_id cookie
+            response.set_cookie('session_id', session_id, max_age=86400 * 30)  # 30 days
 
             return response
 
@@ -109,48 +129,24 @@ def chatbot():
             logger.error(f"Chatbot error: {str(e)}")
             return jsonify({"error": "An error occurred."}), 500
 
-    # GET request: Render chat interface
-    history_doc = chat_history_collection.find_one({"session_id": session_id}) or {"messages": []}
-    response = make_response(render_template('chatbot.html', chat_history=history_doc.get("messages", [])))
-
-    # Set session_id cookie if not already set
-    if not request.cookies.get('session_id'):
-        response.set_cookie('session_id', session_id, max_age=86400 * 30)  # 30 days
-
+    # GET request: Render chat interface with empty history
+    response = make_response(render_template('chatbot.html', chat_history=[]))
+    response.set_cookie('session_id', session_id, max_age=86400 * 30)  # 30 days
     return response
 
-@app.route('/reset', methods=['POST'])
-def reset_chat():
+@app.route('/get_suggestions', methods=['POST'])
+def get_suggestions():
     try:
-        # Get current session_id
-        session_id = request.cookies.get('session_id')
-        if not session_id:
-            return jsonify({"error": "No active session."}), 400
+        data = request.get_json()
+        user_message = data.get('user_message', '').strip()
+        if not user_message:
+            return jsonify({"error": "No user message provided."}), 400
 
-        # Create a new session_id
-        new_session_id = generate_session_id()
-        logger.info(f"Resetting chat: Old session {session_id}, New session {new_session_id}")
-
-        # Initialize new chat history
-        chat_history_collection.update_one(
-            {"session_id": new_session_id},
-            {
-                "$set": {
-                    "messages": [],
-                    "created_at": datetime.utcnow(),
-                    "last_updated": datetime.utcnow()
-                }
-            },
-            upsert=True
-        )
-
-        response = jsonify({"status": "success", "new_session_id": new_session_id})
-        response.set_cookie('session_id', new_session_id, max_age=86400 * 30)  # 30 days
-        return response
-
+        suggestions = generate_suggestions(user_message)
+        return jsonify({"suggestions": suggestions})
     except Exception as e:
-        logger.error(f"Reset error: {str(e)}")
-        return jsonify({"error": "Failed to reset chat."}), 500
+        logger.error(f"Error generating suggestions: {str(e)}")
+        return jsonify({"error": "Failed to generate suggestions."}), 500
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True, port=7000, host='0.0.0.0')
