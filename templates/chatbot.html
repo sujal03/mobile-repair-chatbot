@@ -3,29 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aishwaray - AI Agentic Chatbot for Electronics Refurbishing</title>
+    <title>Aishwaray - AI Chatbot for Electronics Refurbishing</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked@4.0.12/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@2.3.6/dist/purify.min.js"></script>
     <style>
         :root {
-            --primary: #6C63FF;
-            --secondary: #A3A3A3;
-            --background: #1A1A2E;
-            --surface: #2A2A3E;
-            --text-primary: #FFFFFF;
-            --text-secondary: #B0B0B0;
-            --border: #3A3A4E;
-            --success: #4CAF50;
-            --error: #FF5252;
-            --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            --code-bg: #3A3A4E;
-            --code-border: #4A4A5E;
-            --sidebar-bg: #2A2A3E;
-            --input-bg: #3A3A4E;
+            --primary: #3A45D8;
+            --primary-light: #E8EAFF;
+            --secondary: #8D93C9;
+            --text-primary: #1C1D21;
+            --text-secondary: #6D717A;
+            --light-bg: #F5F8FF;
+            --white: #FFFFFF;
+            --border-color: #E1E5EE;
+            --gradient-start: #F0F4FF;
+            --gradient-end: #FFE1E4;
+            --user-msg-bg: #F0F4FF;
+            --bot-msg-bg: #FFFFFF;
+            --bot-icon-bg: #3A45D8;
+            --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
         }
 
         * {
@@ -35,8 +35,8 @@
         }
 
         body {
-            font-family: 'Poppins', sans-serif;
-            background: var(--background);
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
             color: var(--text-primary);
             min-height: 100vh;
             display: flex;
@@ -51,21 +51,24 @@
         }
 
         .sidebar {
-            width: 280px;
-            background: var(--sidebar-bg);
-            padding: 2rem 1.5rem;
+            width: 380px;
+            background: var(--light-bg);
+            padding: 2rem;
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 1.5rem;
             position: fixed;
             height: 100%;
             z-index: 1000;
+            box-shadow: var(--box-shadow);
+            overflow-y: auto;
         }
 
         .sidebar-header {
-            font-size: 1.2rem;
+            font-size: 1.25rem;
             font-weight: 600;
-            margin-bottom: 1rem;
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
         }
 
         .suggestions {
@@ -77,67 +80,79 @@
         .suggestions-mobile {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.5rem;
-            padding: 1rem 2rem;
-            background: var(--surface);
-            border-top: 1px solid var(--border);
+            gap: 0.75rem;
+            padding: 1.5rem;
+            background: var(--white);
+            border-top: 1px solid var(--border-color);
         }
 
         .suggestion-chip {
-            background: var(--surface);
-            border-radius: 8px;
-            padding: 0.75rem 1rem;
+            background: var(--white);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
             cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-            font-weight: 400;
+            transition: all 0.2s ease;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-weight: 500;
+            box-shadow: var(--box-shadow);
         }
 
         .suggestions-mobile .suggestion-chip {
-            background: var(--input-bg);
-            padding: 0.5rem 0.75rem;
-            font-size: 0.85rem;
+            background: var(--white);
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            border-radius: 10px;
         }
 
         .suggestion-chip:hover {
-            background: var(--primary);
-            transform: translateX(4px);
-        }
-
-        .suggestions-mobile .suggestion-chip:hover {
-            transform: none;
-            background: var(--primary);
-        }
-
-        .suggestion-chip i {
+            background: var(--primary-light);
+            border-color: var(--primary);
+            transform: translateY(-2px);
             color: var(--primary);
-        }
-
-        .suggestion-chip:hover i {
-            color: var(--text-primary);
         }
 
         .main-content {
             flex: 1;
-            margin-left: 280px;
+            margin-left: 380px;
             display: flex;
             flex-direction: column;
             position: relative;
+            background: var(--white);
         }
 
         .chat-header {
             padding: 1.5rem 2rem;
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
+            background: var(--white);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+        }
+
+        .chat-header-logo {
+            width: 40px;
+            height: 40px;
+            background: #000;
+            border-radius: 10px;
+            margin-right: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .chat-header-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .chat-header h2 {
-            font-size: 1.5rem;
+            font-size: 1.25rem;
             font-weight: 600;
             margin: 0;
+            color: var(--text-primary);
         }
 
         .chat-messages {
@@ -147,151 +162,87 @@
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
+            background: var(--white);
             -webkit-overflow-scrolling: touch;
         }
 
         .message {
-            max-width: 70%;
-            padding: 0.75rem 1.25rem;
-            border-radius: 12px;
+            max-width: 80%;
+            border-radius: 16px;
+            padding: 1rem 1.25rem;
             line-height: 1.5;
-            animation: slideIn 0.3s ease;
-            display: flex;
-            gap: 0.75rem;
-            align-items: flex-start;
+            animation: fadeIn 0.3s ease;
+            font-size: 0.95rem;
         }
 
         .user-message {
-            background: var(--primary);
+            background: var(--user-msg-bg);
             margin-left: auto;
-            border-bottom-right-radius: 4px;
+            color: var(--text-primary);
+            align-self: flex-end;
         }
 
         .bot-message {
-            background: var(--surface);
+            background: var(--bot-msg-bg);
             margin-right: auto;
-            border-bottom-left-radius: 4px;
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            align-self: flex-start;
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
         }
 
         .message-content {
             word-wrap: break-word;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .message-content h1, .message-content h2, .message-content h3 {
-            font-weight: 600;
-            margin: 0.5rem 0;
-        }
-
-        .message-content h1 { font-size: 1.5rem; }
-        .message-content h2 { font-size: 1.25rem; }
-        .message-content h3 { font-size: 1.1rem; }
-
-        .message-content p {
-            margin: 0;
-        }
-
-        .message-content ul, .message-content ol {
-            margin: 0.5rem 0;
-            padding-left: 1.5rem;
-        }
-
-        .message-content li {
-            margin-bottom: 0.25rem;
-        }
-
-        .message-content code {
-            background: var(--code-bg);
-            border: 1px solid var(--code-border);
-            border-radius: 4px;
-            padding: 0.2rem 0.4rem;
-            font-family: 'Courier New', Courier, monospace;
-        }
-
-        .message-content pre {
-            background: var(--code-bg);
-            border: 1px solid var(--code-border);
-            border-radius: 8px;
-            padding: 1rem;
-            overflow-x: auto;
-            font-family: 'Courier New', Courier, monospace;
-        }
-
-        .message-content strong {
-            font-weight: 600;
-        }
-
-        .message-content em {
-            font-style: italic;
-        }
-
-        .message-content a {
-            color: var(--primary);
-            text-decoration: none;
-        }
-
-        .message-content a:hover {
-            text-decoration: underline;
-        }
-
-        .message-content img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 8px;
-            margin-bottom: 0.5rem;
         }
 
         .message-timestamp {
             font-size: 0.75rem;
             color: var(--text-secondary);
             margin-top: 0.5rem;
-        }
-
-        .message-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            font-size: 1.2rem;
-        }
-
-        .user-icon {
-            background: var(--primary);
+            text-align: right;
         }
 
         .bot-icon {
-            background: #4A4A5E;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--bot-icon-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-size: 1rem;
+            flex-shrink: 0;
         }
 
         .input-container {
             padding: 1.5rem 2rem;
-            background: var(--surface);
-            border-top: 1px solid var(--border);
+            background: var(--white);
+            border-top: 1px solid var(--border-color);
             position: sticky;
             bottom: 0;
         }
 
         .input-group {
-            background: var(--input-bg);
-            border-radius: 30px;
-            padding: 0.5rem 1rem;
+            background: var(--white);
+            border-radius: 12px;
+            padding: 0.25rem;
             display: flex;
             align-items: center;
             gap: 0.75rem;
+            border: 1px solid var(--border-color);
         }
 
         .form-control {
             border: none;
             background: transparent;
-            padding: 0.5rem 1rem;
+            padding: 0.75rem 1rem;
             color: var(--text-primary);
             flex: 1;
             font-size: 0.95rem;
+            font-family: 'Inter', sans-serif;
         }
 
         .form-control:focus {
@@ -305,24 +256,30 @@
 
         .send-btn, .image-upload-label {
             background: var(--primary);
-            color: var(--text-primary);
+            color: var(--white);
             border: none;
-            border-radius: 50%;
+            border-radius: 10px;
             width: 40px;
             height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: background 0.3s ease;
+            transition: background 0.2s ease;
         }
 
         .image-upload-label {
-            background: var(--secondary);
+            background: var(--white);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
         }
 
-        .send-btn:hover, .image-upload-label:hover {
-            background: #5A52FF;
+        .send-btn:hover {
+            background: #2a33b0;
+        }
+
+        .image-upload-label:hover {
+            background: var(--light-bg);
         }
 
         .image-preview {
@@ -355,18 +312,21 @@
             animation-delay: 0.4s;
         }
 
-        .alert {
+        .message-image {
+            max-width: 100%;
             border-radius: 8px;
-            padding: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            background: var(--surface);
-            border: 1px solid var(--error);
-            color: var(--error);
+            margin-bottom: 1rem;
         }
 
-        @keyframes slideIn {
+        .message-text p {
+            margin-bottom: 0.75rem;
+        }
+
+        .message-text p:last-child {
+            margin-bottom: 0;
+        }
+
+        @keyframes fadeIn {
             from {
                 opacity: 0;
                 transform: translateY(10px);
@@ -402,26 +362,38 @@
             }
         }
 
+        @media (max-width: 768px) {
+            .message {
+                max-width: 85%;
+            }
+        }
+
         @media (max-width: 576px) {
-            .chat-messages, .input-container, .suggestions-mobile {
+            .chat-messages, .input-container {
                 padding: 1rem;
             }
 
             .message {
-                max-width: 85%;
+                max-width: 90%;
+                padding: 0.875rem 1rem;
+            }
+
+            .chat-header {
+                padding: 1rem;
             }
 
             .chat-header h2 {
-                font-size: 1.25rem;
+                font-size: 1.1rem;
             }
 
-            .form-control {
-                font-size: 0.9rem;
+            .suggestions-mobile {
+                padding: 1rem;
+                gap: 0.5rem;
             }
 
             .suggestions-mobile .suggestion-chip {
+                padding: 0.6rem 0.875rem;
                 font-size: 0.8rem;
-                padding: 0.4rem 0.6rem;
             }
         }
     </style>
@@ -429,8 +401,14 @@
 <body>
     <div class="app-container">
         <div class="sidebar" id="sidebar">
-            <div class="sidebar-header">Suggested Questions</div>
-            <div id="suggestions-desktop" class="suggestions"></div>
+            <div class="sidebar-header">Popular Question</div>
+            <div id="suggestions-desktop" class="suggestions">
+                <div class="suggestion-chip">What is the cost of screen replacement?</div>
+                <div class="suggestion-chip">Want to compare two devices?</div>
+                <div class="suggestion-chip">Do you repair water-damaged phones?</div>
+                <div class="suggestion-chip">What's your return policy?</div>
+                <div class="suggestion-chip">Do you offer screen replacement services?</div>
+            </div>
         </div>
 
         <div class="main-content">
@@ -448,43 +426,60 @@
             {% endwith %}
 
             <div class="chat-header">
-                <h2>Aishwaray - AI Chatbot</h2>
+                <div class="chat-header-logo">
+                    <img src="/api/placeholder/40/40" alt="Aishwaray Logo">
+                </div>
+                <h2>Aishwaray - Chatbot</h2>
             </div>
 
             <div class="chat-messages" id="chat-messages">
                 {% for msg in chat_history %}
-                <div class="message {{ 'user-message' if msg.role == 'user' else 'bot-message' }}">
-                    <div class="message-icon {{ 'user-icon' if msg.role == 'user' else 'bot-icon' }}">
-                        <i class="fas fa-{{ 'user' if msg.role == 'user' else 'robot' }}"></i>
+                {% if msg.role == 'user' %}
+                <div class="message user-message">
+                    {% if msg.image_url %}
+                    <img src="{{ msg.image_url }}" alt="User uploaded image" class="message-image">
+                    {% endif %}
+                    <div class="message-content">
+                        <div class="message-text">{{ msg.message | safe }}</div>
+                    </div>
+                    <div class="message-timestamp">
+                        {{ msg.timestamp.strftime('%H:%M %p, %d %b') }}
+                    </div>
+                </div>
+                {% else %}
+                <div class="message bot-message">
+                    <div class="bot-icon">
+                        <i class="fas fa-robot"></i>
                     </div>
                     <div>
                         <div class="message-content">
-                            {% if msg.role == 'user' and msg.image_url %}
-                            <img src="{{ msg.image_url }}" alt="User uploaded image" class="message-image">
-                            {% endif %}
                             <div class="message-text">{{ msg.message | safe }}</div>
                         </div>
                         <div class="message-timestamp">
-                            {{ msg.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+                            {{ msg.timestamp.strftime('%H:%M %p, %d %b') }}
                         </div>
                     </div>
                 </div>
+                {% endif %}
                 {% endfor %}
             </div>
 
-            <div id="suggestions-mobile" class="suggestions-mobile"></div>
+            <div id="suggestions-mobile" class="suggestions-mobile">
+                <div class="suggestion-chip">What is the cost of screen replacement?</div>
+                <div class="suggestion-chip">Want to compare two devices?</div>
+                <div class="suggestion-chip">Do you repair water-damaged phones?</div>
+                <div class="suggestion-chip">Do you offer screen replacement services?</div>
+            </div>
 
             <div class="input-container">
                 <form id="chat-form" class="input-group" enctype="multipart/form-data">
-                    <div class="image-upload">
-                        <label for="image-upload" class="image-upload-label">
-                            <i class="fas fa-image"></i>
-                        </label>
-                        <input type="file" id="image-upload" name="image" accept="image/*" style="display: none;">
-                        <img id="image-preview" class="image-preview" alt="Image preview">
-                    </div>
+                    <label for="image-upload" class="image-upload-label">
+                        <i class="fas fa-image"></i>
+                    </label>
+                    <input type="file" id="image-upload" name="image" accept="image/*" style="display: none;">
+                    <img id="image-preview" class="image-preview" alt="Image preview">
                     <input type="text" id="user_message" name="user_message" class="form-control"
-                           placeholder="Ask me anything..." autocomplete="off">
+                           placeholder="Ask a question" autocomplete="off">
                     <button type="submit" class="send-btn" id="send-btn">
                         <i class="fas fa-paper-plane"></i>
                     </button>
@@ -508,100 +503,14 @@
             // Clear local storage on page load to ensure fresh session
             localStorage.removeItem('chatHistory');
 
-            // Initial suggestions
+            // Default suggestions from the design
             let suggestions = [
-                { text: "How do I update my device to the latest iOS version?", icon: "mobile-alt" },
-                { text: "Analyze this image of my phone screen for issues", icon: "image" },
-                { text: "How do I activate eSIM on my iPhone?", icon: "sim-card" },
-                { text: "Identify hardware damage in this device photo", icon: "tools" },
-                { text: "Why is my iPad not turning on?", icon: "tablet-alt" },
-                { text: "Enable two-factor authentication for my Apple ID", icon: "lock" },
+                "What is the cost of screen replacement?",
+                "Want to compare two devices?",
+                "Do you repair water-damaged phones?", 
+                "What's your return policy?",
+                "Do you offer screen replacement services?"
             ];
-
-            // Icon mapping for dynamic suggestions
-            const iconMap = {
-                "update": "mobile-alt",
-                "ios": "mobile-alt",
-                "image": "image",
-                "screen": "image",
-                "esim": "sim-card",
-                "hardware": "tools",
-                "damage": "tools",
-                "ipad": "tablet-alt",
-                "authentication": "lock",
-                "apple id": "lock",
-                "troubleshoot": "tools",
-                "reset": "redo",
-                "battery": "battery-half",
-                "repair": "wrench",
-                "default": "question-circle"
-            };
-
-            function getIconForSuggestion(suggestionText) {
-                const text = suggestionText.toLowerCase();
-                for (const [keyword, icon] of Object.entries(iconMap)) {
-                    if (text.includes(keyword)) {
-                        return icon;
-                    }
-                }
-                return iconMap.default;
-            }
-
-            function updateSuggestions(userMessage) {
-                if (!userMessage) {
-                    // Initial suggestions
-                    const suggestionHtml = suggestions.map(s =>
-                        `<div class="suggestion-chip"><i class="fas fa-${s.icon}"></i>${s.text}</div>`
-                    ).join('');
-                    $suggestionsDesktop.html(suggestionHtml);
-                    $suggestionsMobile.html(suggestionHtml);
-                    return;
-                }
-
-                // Fetch suggestions from OpenAI
-                $.ajax({
-                    type: "POST",
-                    url: "/get_suggestions",
-                    data: JSON.stringify({ user_message: userMessage }),
-                    contentType: "application/json",
-                    success: function (response) {
-                        if (response.suggestions && response.suggestions.length > 0) {
-                            suggestions = response.suggestions.map(suggestion => ({
-                                text: suggestion,
-                                icon: getIconForSuggestion(suggestion)
-                            }));
-                        } else {
-                            // Fallback suggestions
-                            suggestions = [
-                                { text: "Can you help with another device issue?", icon: "question-circle" },
-                                { text: "What are common troubleshooting steps for devices?", icon: "tools" },
-                                { text: "How do I back up my device data?", icon: "cloud-upload-alt" },
-                            ];
-                        }
-                        const suggestionHtml = suggestions.map(s =>
-                            `<div class="suggestion-chip"><i class="fas fa-${s.icon}"></i>${s.text}</div>`
-                        ).join('');
-                        $suggestionsDesktop.html(suggestionHtml);
-                        $suggestionsMobile.html(suggestionHtml);
-                    },
-                    error: function () {
-                        // Fallback suggestions on error
-                        suggestions = [
-                            { text: "Can you help with another device issue?", icon: "question-circle" },
-                            { text: "What are common troubleshooting steps for devices?", icon: "tools" },
-                            { text: "How do I back up my device data?", icon: "cloud-upload-alt" },
-                        ];
-                        const suggestionHtml = suggestions.map(s =>
-                            `<div class="suggestion-chip"><i class="fas fa-${s.icon}"></i>${s.text}</div>`
-                        ).join('');
-                        $suggestionsDesktop.html(suggestionHtml);
-                        $suggestionsMobile.html(suggestionHtml);
-                    }
-                });
-            }
-
-            // Initial suggestions
-            updateSuggestions("");
 
             // Handle suggestion click for both desktop and mobile
             $suggestionsDesktop.on('click', '.suggestion-chip', function () {
@@ -658,30 +567,33 @@
                     formData.append('image', imageFile);
                 }
 
-                const userTimestamp = new Date().toISOString();
+                const now = new Date();
+                const formattedTime = formatTime(now);
+                
                 let messageHtml = `
                     <div class="message user-message">
-                        <div class="message-icon user-icon"><i class="fas fa-user"></i></div>
-                        <div>
-                            <div class="message-content">
                 `;
                 if (imageFile) {
                     messageHtml += `<img src="${$imagePreview.attr('src')}" alt="User uploaded image" class="message-image">`;
                 }
                 if (userMessage) {
-                    messageHtml += `<div class="message-text">${userMessage}</div>`;
+                    messageHtml += `
+                        <div class="message-content">
+                            <div class="message-text">${userMessage}</div>
+                        </div>
+                    `;
                 }
                 messageHtml += `
-                            </div>
-                            <div class="message-timestamp">${formatTimestamp(userTimestamp)}</div>
-                        </div>
+                        <div class="message-timestamp">${formattedTime}</div>
                     </div>
                 `;
                 $chatMessages.append(messageHtml);
 
                 $chatMessages.append(`
                     <div class="message bot-message" id="loading">
-                        <div class="message-icon bot-icon"><i class="fas fa-robot"></i></div>
+                        <div class="bot-icon">
+                            <i class="fas fa-robot"></i>
+                        </div>
                         <div class="loading-dots"><span></span><span></span><span></span></div>
                     </div>
                 `);
@@ -700,35 +612,42 @@
                         const sanitizedResponse = DOMPurify.sanitize(markdownResponse);
                         $chatMessages.append(`
                             <div class="message bot-message">
-                                <div class="message-icon bot-icon"><i class="fas fa-robot"></i></div>
+                                <div class="bot-icon">
+                                    <i class="fas fa-robot"></i>
+                                </div>
                                 <div>
                                     <div class="message-content">
                                         <div class="message-text">${sanitizedResponse}</div>
                                     </div>
-                                    <div class="message-timestamp">${formatTimestamp(response.timestamp)}</div>
+                                    <div class="message-timestamp">${formatTime(new Date(response.timestamp))}</div>
                                 </div>
                             </div>
                         `);
                         $chatMessages.scrollTop($chatMessages[0].scrollHeight);
                         saveChatHistory();
-                        updateSuggestions(userMessage);
+                        
+                        // Keep using the existing suggestion functionality
+                        if (typeof updateSuggestions === 'function') {
+                            updateSuggestions(userMessage);
+                        }
                     },
                     error: function () {
                         $('#loading').remove();
                         $chatMessages.append(`
-                            <div class="message bot-message alert-danger">
-                                <div class="message-icon bot-icon"><i class="fas fa-robot"></i></div>
+                            <div class="message bot-message">
+                                <div class="bot-icon">
+                                    <i class="fas fa-robot"></i>
+                                </div>
                                 <div>
                                     <div class="message-content">
                                         <div class="message-text">Sorry, something went wrong. Please try again.</div>
                                     </div>
-                                    <div class="message-timestamp">${formatTimestamp(new Date().toISOString())}</div>
+                                    <div class="message-timestamp">${formatTime(new Date())}</div>
                                 </div>
                             </div>
                         `);
                         $chatMessages.scrollTop($chatMessages[0].scrollHeight);
                         saveChatHistory();
-                        updateSuggestions(userMessage);
                     },
                     complete: function () {
                         $sendBtn.prop('disabled', false);
@@ -743,15 +662,13 @@
                 localStorage.setItem('chatHistory', $chatMessages.html());
             }
 
-            function formatTimestamp(isoString) {
-                const date = new Date(isoString);
+            function formatTime(date) {
                 return date.toLocaleString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
                     hour: '2-digit',
                     minute: '2-digit',
-                    second: '2-digit'
+                    hour12: true,
+                    day: '2-digit',
+                    month: 'short'
                 });
             }
 
@@ -762,6 +679,12 @@
                     setTimeout(() => $(this).remove(), 500);
                 });
             }, 5000);
+            
+            // Keep the existing dynamic suggestion functionality
+            if (typeof updateSuggestions === 'function') {
+                // Initial suggestions
+                updateSuggestions("");
+            }
         });
     </script>
 </body>
