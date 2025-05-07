@@ -401,13 +401,11 @@
 <body>
     <div class="app-container">
         <div class="sidebar" id="sidebar">
-            <div class="sidebar-header">Popular Question</div>
+            <div class="sidebar-header">Popular Questions</div>
             <div id="suggestions-desktop" class="suggestions">
                 <div class="suggestion-chip">What is the cost of screen replacement?</div>
                 <div class="suggestion-chip">Want to compare two devices?</div>
                 <div class="suggestion-chip">Do you repair water-damaged phones?</div>
-                <div class="suggestion-chip">What's your return policy?</div>
-                <div class="suggestion-chip">Do you offer screen replacement services?</div>
             </div>
         </div>
 
@@ -468,7 +466,6 @@
                 <div class="suggestion-chip">What is the cost of screen replacement?</div>
                 <div class="suggestion-chip">Want to compare two devices?</div>
                 <div class="suggestion-chip">Do you repair water-damaged phones?</div>
-                <div class="suggestion-chip">Do you offer screen replacement services?</div>
             </div>
 
             <div class="input-container">
@@ -503,14 +500,60 @@
             // Clear local storage on page load to ensure fresh session
             localStorage.removeItem('chatHistory');
 
-            // Default suggestions from the design
-            let suggestions = [
-                "What is the cost of screen replacement?",
-                "Want to compare two devices?",
-                "Do you repair water-damaged phones?", 
-                "What's your return policy?",
-                "Do you offer screen replacement services?"
-            ];
+            // Function to update suggestions
+            function updateSuggestions(userMessage) {
+                console.log('Fetching suggestions for message:', userMessage);
+                $.ajax({
+                    type: 'POST',
+                    url: '/get_suggestions',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ user_message: userMessage || '' }),
+                    xhrFields: {
+                        withCredentials: true // Ensure cookies (session_id) are sent
+                    },
+                    success: function (response) {
+                        console.log('Suggestions received:', response);
+                        const suggestions = response.suggestions || [
+                            "What is the cost of screen replacement?",
+                            "Want to compare two devices?",
+                            "Do you repair water-damaged phones?"
+                        ];
+                        // Update desktop suggestions
+                        $suggestionsDesktop.empty();
+                        suggestions.forEach(suggestion => {
+                            $suggestionsDesktop.append(
+                                `<div class="suggestion-chip">${suggestion}</div>`
+                            );
+                        });
+                        // Update mobile suggestions
+                        $suggestionsMobile.empty();
+                        suggestions.forEach(suggestion => {
+                            $suggestionsMobile.append(
+                                `<div class="suggestion-chip">${suggestion}</div>`
+                            );
+                        });
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('Error fetching suggestions:', status, error, xhr.responseText);
+                        // Fallback to default suggestions
+                        const defaultSuggestions = [
+                            "What is the cost of screen replacement?",
+                            "Want to compare two devices?",
+                            "Do you repair water-damaged phones?"
+                        ];
+                        $suggestionsDesktop.empty();
+                        $suggestionsMobile.empty();
+                        defaultSuggestions.forEach(suggestion => {
+                            $suggestionsDesktop.append(
+                                `<div class="suggestion-chip">${suggestion}</div>`
+                            );
+                            $suggestionsMobile.append(
+                                `<div class="suggestion-chip">${suggestion}</div>`
+                            );
+                        });
+                    }
+                });
+            }
 
             // Handle suggestion click for both desktop and mobile
             $suggestionsDesktop.on('click', '.suggestion-chip', function () {
@@ -606,6 +649,9 @@
                     data: formData,
                     processData: false,
                     contentType: false,
+                    xhrFields: {
+                        withCredentials: true // Ensure cookies (session_id) are sent
+                    },
                     success: function (response) {
                         $('#loading').remove();
                         const markdownResponse = marked.parse(response.bot_response);
@@ -626,12 +672,11 @@
                         $chatMessages.scrollTop($chatMessages[0].scrollHeight);
                         saveChatHistory();
                         
-                        // Keep using the existing suggestion functionality
-                        if (typeof updateSuggestions === 'function') {
-                            updateSuggestions(userMessage);
-                        }
+                        // Update suggestions with the latest user message
+                        updateSuggestions(userMessage);
                     },
-                    error: function () {
+                    error: function (xhr, status, error) {
+                        console.error('Error in chatbot request:', status, error, xhr.responseText);
                         $('#loading').remove();
                         $chatMessages.append(`
                             <div class="message bot-message">
@@ -648,6 +693,8 @@
                         `);
                         $chatMessages.scrollTop($chatMessages[0].scrollHeight);
                         saveChatHistory();
+                        // Update with default suggestions on error
+                        updateSuggestions(userMessage);
                     },
                     complete: function () {
                         $sendBtn.prop('disabled', false);
@@ -679,12 +726,9 @@
                     setTimeout(() => $(this).remove(), 500);
                 });
             }, 5000);
-            
-            // Keep the existing dynamic suggestion functionality
-            if (typeof updateSuggestions === 'function') {
-                // Initial suggestions
-                updateSuggestions("");
-            }
+
+            // Initialize suggestions
+            updateSuggestions("");
         });
     </script>
 </body>
