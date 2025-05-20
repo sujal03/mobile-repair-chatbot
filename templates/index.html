@@ -17,7 +17,13 @@
         <!-- Sidebar: Popular questions -->
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">Popular Questions</div>
-            <div id="suggestions-desktop" class="suggestions"></div>
+            <div id="suggestions-desktop" class="suggestions">
+                <!-- <div class="suggestion-chip">What is the cost of screen replacement?</div>
+                <div class="suggestion-chip">Want to compare two devices?</div>
+                <div class="suggestion-chip">Do you repair water-damaged phones?</div>
+                <div class="suggestion-chip">What's your return policy?</div>
+                <div class="suggestion-chip">Do you offer screen replacement services?</div> -->
+            </div>
             <!-- Refresh Chat Button -->
             <button id="refresh-chat-btn" class="refresh-chat-btn">
                 <i class="fas fa-sync-alt"></i> Refresh Chat
@@ -28,37 +34,12 @@
         <div class="main-content">
             <!-- Chat header -->
             <div class="chat-header">
-                <div class="chat-header-logo">
-                    <img src="static/images/image.png" alt="Aishwaray Logo">
-                </div>
                 <h2>AI Chatbot</h2>
             </div>
 
             <!-- Chat messages -->
             <div class="chat-messages" id="chat-messages">
-                {% for msg in chat_history %}
-                {% if msg.role == 'user' %}
-                <div class="message user-message">
-                    {% if msg.image_url %}
-                    <img src="{{ msg.image_url }}" alt="User uploaded image" class="message-image">
-                    {% endif %}
-                    <div class="message-content">
-                        <div class="message-text">{{ msg.message | safe }}</div>
-                    </div>
-                    <div class="message-timestamp">{{ msg.timestamp.strftime('%H:%M %p, %d %b') }}</div>
-                </div>
-                {% else %}
-                <div class="message bot-message">
-                    <div class="bot-icon"><i class="fas fa-robot"></i></div>
-                    <div>
-                        <div class="message-content">
-                            <div class="message-text">{{ msg.message | safe }}</div>
-                        </div>
-                        <div class="message-timestamp">{{ msg.timestamp.strftime('%H:%M %p, %d %b') }}</div>
-                    </div>
-                </div>
-                {% endif %}
-                {% endfor %}
+                <!-- Messages will be added here dynamically -->
             </div>
 
             <!-- Mobile suggestions -->

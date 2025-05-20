@@ -23,18 +23,47 @@ $(document).ready(function () {
         console.log("Chat session reset on page load");
         // Clear chat messages
         $chatMessages.empty();
-        // Update suggestions after reset
-        updateSuggestions("");
+        // Set default suggestions for new users instead of calling API
+        setDefaultSuggestions();
       } else {
         console.error("Failed to reset chat on page load:", response.error);
       }
     },
     error: function (xhr) {
       console.error("Error resetting chat on page load:", xhr.responseText);
+      // Set default suggestions even if reset fails
+      setDefaultSuggestions();
     },
   });
 
-  // Update suggestions based on user input
+  // Function to set default suggestions without API call
+  function setDefaultSuggestions() {
+    const defaultSuggestions = [
+      "How do I update my device to the latest iOS version?",
+      "How do I activate eSIM on my iPhone?",
+      "Why is my MacBook battery draining quickly?",
+      "How can I fix Wi-Fi connectivity issues?",
+      "Turn on Face ID or Touch ID on my iPhone",
+    ];
+    
+    $suggestionsDesktop
+      .empty()
+      .append(
+        defaultSuggestions
+          .map((s) => `<div class="suggestion-chip">${s}</div>`)
+          .join("")
+      );
+    
+    $suggestionsMobile
+      .empty()
+      .append(
+        defaultSuggestions.slice(0, 3)
+          .map((s) => `<div class="suggestion-chip">${s}</div>`)
+          .join("")
+      );
+  }
+
+  // Update suggestions based on user input - only called after user interacts
   function updateSuggestions(userMessage) {
     $.ajax({
       type: "POST",
@@ -47,6 +76,8 @@ $(document).ready(function () {
           "What is the cost of screen replacement?",
           "Want to compare two devices?",
           "Do you repair water-damaged phones?",
+          "What's your return policy?",
+          "Do you offer screen replacement services?"
         ];
         $suggestionsDesktop
           .empty()
@@ -69,6 +100,8 @@ $(document).ready(function () {
           "What is the cost of screen replacement?",
           "Want to compare two devices?",
           "Do you repair water-damaged phones?",
+          "What's your return policy?",
+          "Do you offer screen replacement services?"
         ];
         $suggestionsDesktop
           .empty()
@@ -89,16 +122,12 @@ $(document).ready(function () {
   }
 
   // Handle suggestion clicks
-  $(".suggestions, .suggestions-mobile").on(
-    "click",
-    ".suggestion-chip",
-    function () {
-      $input.val($(this).text());
-      $imageInput.val("");
-      $imagePreview.hide();
-      $form.submit();
-    }
-  );
+  $(document).on("click", ".suggestion-chip", function () {
+    $input.val($(this).text());
+    $imageInput.val("");
+    $imagePreview.hide();
+    $form.submit();
+  });
 
   // Image upload preview
   $imageInput.on("change", function (e) {
@@ -183,6 +212,8 @@ $(document).ready(function () {
         );
         $chatMessages.scrollTop($chatMessages[0].scrollHeight);
         localStorage.setItem("chatHistory", $chatMessages.html());
+        
+        // Only update suggestions through API after first user interaction
         updateSuggestions(userMessage);
       },
       error: function (xhr) {
@@ -200,7 +231,6 @@ $(document).ready(function () {
         );
         $chatMessages.scrollTop($chatMessages[0].scrollHeight);
         localStorage.setItem("chatHistory", $chatMessages.html());
-        updateSuggestions(userMessage);
       },
       complete: function () {
         $sendBtn.prop("disabled", false);
@@ -223,8 +253,8 @@ $(document).ready(function () {
           $chatMessages.empty();
           // Clear local storage
           localStorage.removeItem("chatHistory");
-          // Update suggestions after reset
-          updateSuggestions("");
+          // Set default suggestions instead of API call
+          setDefaultSuggestions();
         } else {
           alert("Failed to reset chat: " + (response.error || "Unknown error"));
         }
@@ -256,5 +286,6 @@ $(document).ready(function () {
       });
   }, 5000);
 
-  // Initialize suggestions (already called after reset)
+  // Initialize with default suggestions instead of API call
+  setDefaultSuggestions();
 });

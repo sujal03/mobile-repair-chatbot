@@ -10,6 +10,7 @@ import base64
 from io import BytesIO
 import logging
 from datetime import datetime
+from prompts import main_prompt, get_follow_up_questions
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -303,24 +304,7 @@ def generate_llm_response(user_message: str, chat_history: list, image_file=None
         conversation_summary = get_recent_conversation_summary(chat_history)
 
         # System prompt
-        system_prompt = f"""You are a mobile repair expert AI. Provide clear, practical solutions for mobile phone issues, 
-including hardware and software problems. Offer step-by-step troubleshooting, repair advice, or recommendations 
-for professional help. If an image is provided, analyze it for damage, errors, or relevant details.
-
-Keep responses concise, accurate, and user-friendly. Use this context if applicable:
-
-{context}
-
-{conversation_summary}
-
-Guidelines:
-- Focus on technical accuracy
-- Use step-by-step instructions where needed
-- Be honest about limitations
-- Prioritize safety
-- Format instructions with bullets or numbers
-- Be concise yet thorough
-"""
+        system_prompt = main_prompt(context, conversation_summary)
 
         # Prepare messages
         messages = [{"role": "system", "content": system_prompt}]
@@ -378,21 +362,7 @@ def generate_suggestions(user_message: str, chat_history: list = None) -> list:
                 for msg in recent
             )
 
-        prompt = f"""
-You are a mobile repair expert AI specializing in iPhone repair, troubleshooting, and maintenance. Based on the user's latest message and recent conversation context, suggest 3 follow-up questions for the user to ask next. The questions should be concise, relevant to iPhone repair, troubleshooting, or maintenance, and encourage the user to continue the conversation.
-
-Recent conversation context:
-{recent_context}
-
-User's latest message: "{user_message}"
-
-If you don't have recent context or user message, suggest general questions related to iPhone repair.
-
-Format the suggestions as:
-- "Question 1?"
-- "Question 2?"
-- "Question 3?"
-"""
+        prompt = get_follow_up_questions(recent_context, user_message)
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[{"role": "system", "content": "Mobile repair expert AI"}, {"role": "user", "content": prompt}],

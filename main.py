@@ -1,7 +1,9 @@
 from flask import (
     Flask, render_template, request, jsonify, make_response, redirect, url_for
 )
-from chatbot import generate_llm_response, generate_suggestions
+from chatbot import (
+    generate_llm_response, generate_suggestions, chat_history_collection
+)
 import os
 import pymongo
 from dotenv import load_dotenv
@@ -26,16 +28,6 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "your-secret-key")
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # Limit uploads to 10MB
-
-# MongoDB setup
-mongo_client = pymongo.MongoClient(
-    os.getenv("MONGO_URI"), serverSelectionTimeoutMS=5000  # 5-second timeout
-)
-mongo_client.server_info()  # Test connection
-mongo_db = mongo_client["FAQ_chatbot"]
-chat_history_collection = mongo_db["chat_history"]
-logger.info("MongoDB connection successful")
-
 
 def generate_session_id():
     """Generate a unique session ID using UUID.
