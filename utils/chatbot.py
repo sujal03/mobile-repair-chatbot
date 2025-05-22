@@ -10,7 +10,7 @@ import base64
 from io import BytesIO
 import logging
 from datetime import datetime
-from prompts import main_prompt, get_follow_up_questions
+from utils.prompts import main_prompt, get_follow_up_questions
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

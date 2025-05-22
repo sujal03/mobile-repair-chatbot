@@ -1,7 +1,7 @@
 from flask import (
     Flask, render_template, request, jsonify, make_response, redirect, url_for
 )
-from chatbot import (
+from utils.chatbot import (
     generate_llm_response, generate_suggestions, chat_history_collection
 )
 import os

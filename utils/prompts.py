@@ -20,7 +20,7 @@ Guidelines:
 
 def get_follow_up_questions(recent_context, user_message):
     prompt = f"""
-You’re continuing a conversation with an AI that specializes in iPhone repair, troubleshooting, and maintenance. Based on what you’ve already discussed and your latest message, here are 3 helpful follow-up questions user can ask next. These questions are designed to be clear, relevant, and to help you get more specific help or advice about your issue.
+You’re continuing a conversation with an AI that specializes in iPhone repair, troubleshooting, and maintenance. Based on what you’ve already discussed and your latest message, here are 3 helpful follow-up questions user can ask next. These questions are designed to be clear, relevant, concise and to help you get more specific help or advice about your issue.
 
 Recent conversation context:
 {recent_context}
@@ -30,10 +30,10 @@ Your latest message:
 
 Here are 3 questions you could ask next:
 
-    "Question 1?"
+    "Question?"
 
-    "Question 2?"
+    "Question?"
 
-    "Question 3?"
+    "Question?"
 """
     return prompt

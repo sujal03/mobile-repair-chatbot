@@ -52,12 +52,18 @@
             <!-- Input area -->
             <div class="input-container">
                 <form id="chat-form" class="input-group" enctype="multipart/form-data">
-                    <label for="image-upload" class="image-upload-label"><i class="fas fa-image"></i></label>
-                    <input type="file" id="image-upload" name="image" accept="image/*" style="display: none;">
-                    <img id="image-preview" class="image-preview" alt="Image preview">
                     <input type="text" id="user_message" name="user_message" class="form-control"
                            placeholder="Ask a question" autocomplete="off">
-                    <button type="submit" class="send-btn" id="send-btn"><i class="fas fa-paper-plane"></i></button>
+                    <div class="button-wrap">  
+                        <div class="img-icon-wrap">      
+                            <label for="image-upload" class="image-upload-label"><i class="fas fa-image"></i></label>
+                            <input type="file" id="image-upload" name="image" accept="image/*" style="display: none;">
+                            <img id="image-preview" class="image-preview" alt="Image preview">
+                        </div>
+                        <div class="send-btn-wrap"> 
+                            <button type="submit" class="send-btn" id="send-btn"><i class="fas fa-paper-plane"></i></button>
+                        </div>
+                    </div>
                 </form>
             </div>
         </div>
