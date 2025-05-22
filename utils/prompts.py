@@ -35,5 +35,7 @@ Here are 3 questions you could ask next:
     "Question?"
 
     "Question?"
+
+Make sure to provide the questions in a not numbered list format.(don't add question number like 1,2,3) Each question should be relevant to the context and user message, and should be designed to elicit more specific information or guidance. Avoid generic or vague questions, and focus on practical follow-up inquiries that would help you get the most out of your conversation with the AI.
 """
     return prompt
