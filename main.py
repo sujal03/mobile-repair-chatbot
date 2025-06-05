@@ -1,11 +1,14 @@
 from flask import (
-    Flask, render_template, request, jsonify, make_response, redirect, url_for
+    Flask, render_template, request, jsonify, make_response, redirect, url_for, send_file, session
 )
 from utils.chatbot import (
     generate_llm_response, generate_suggestions, chat_history_collection
 )
+import io
+from functools import wraps
+import csv
 import os
-import pymongo
+import bcrypt
 from dotenv import load_dotenv
 import uuid
 from datetime import datetime
@@ -28,6 +31,10 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "your-secret-key")
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # Limit uploads to 10MB
+
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
+ADMIN_PASSWORD_HASH = bcrypt.hashpw(ADMIN_PASSWORD.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 def generate_session_id():
     """Generate a unique session ID using UUID.
@@ -243,6 +250,181 @@ def reset_chat():
     except Exception as e:
         logger.error(f"Reset error: {str(e)}")
         return jsonify({"error": "Failed to reset chat."}), 500
+    
+
+# Route: Admin dashboard
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get('admin_logged_in'):
+            return redirect(url_for('admin_login', next=request.url))
+        return f(*args, **kwargs)
+    return decorated
+
+# Admin login page
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password').encode('utf-8')
+        if username == ADMIN_USERNAME and bcrypt.checkpw(password, ADMIN_PASSWORD_HASH.encode('utf-8')):
+            session['admin_logged_in'] = True
+            next_url = request.form.get('next') or url_for('admin_panel')
+            return redirect(next_url)
+        else:
+            return render_template('admin_login.html', error='Invalid credentials', next=request.form.get('next'))
+    return render_template('admin_login.html', next=request.args.get('next'))
+
+# Admin logout
+@app.route('/admin/logout')
+def admin_logout():
+    session.pop('admin_logged_in', None)
+    return redirect(url_for('admin_login'))
+
+# Admin panel
+@app.route('/admin')
+@login_required
+def admin_panel():
+    return render_template('admin.html')
+
+# API to get all conversations
+@app.route('/api/admin/conversations', methods=['GET'])
+@login_required
+def get_conversations():
+    try:
+        pipeline = [
+            {'$match': {'session_id': {'$exists': True}, 'messages': {'$exists': True, '$ne': []}}},
+            {'$unwind': '$messages'},
+            {'$sort': {'messages.timestamp': -1}},
+            {'$group': {
+                '_id': '$session_id',
+                'latest_message': {'$first': {'$ifNull': ['$messages.message', '']}},
+                'latest_role': {'$first': {'$ifNull': ['$messages.role', 'unknown']}},
+                'latest_timestamp': {'$first': {'$ifNull': ['$messages.timestamp', datetime.min]}},
+                'message_count': {'$sum': 1}
+            }},
+            {'$sort': {'latest_timestamp': -1}}
+        ]
+        conversations = list(chat_history_collection.aggregate(pipeline))
+        total_conversations = chat_history_collection.count_documents({'session_id': {'$exists': True}, 'messages': {'$exists': True, '$ne': []}})
+        logger.info(f"Found {len(conversations)} conversations")
+        return jsonify({
+            'status': 'success',
+            'conversations': [
+                {
+                    'session_id': str(conv['_id']),
+                    'latest_message': conv['latest_message'][:100] + ('...' if len(conv['latest_message']) > 100 else ''),
+                    'latest_role': conv['latest_role'],
+                    'latest_timestamp': conv['latest_timestamp'].isoformat(),
+                    'message_count': conv['message_count']
+                } for conv in conversations
+            ],
+            'total_conversations': total_conversations
+        })
+    except Exception as e:
+        logger.error(f"Error fetching conversations: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# API to get conversation by session_id
+@app.route('/api/admin/conversation/<session_id>', methods=['GET'])
+@login_required
+def get_conversation(session_id):
+    try:
+        conversation = chat_history_collection.find_one({'session_id': session_id})
+        if not conversation or not conversation.get('messages'):
+            logger.warning(f"No conversation found for session_id: {session_id}")
+            return jsonify({'status': 'error', 'message': 'Conversation not found'}), 404
+        messages = conversation['messages']
+        logger.info(f"Found {len(messages)} messages for session_id: {session_id}")
+        return jsonify({
+            'status': 'success',
+            'messages': [
+                {
+                    'id': str(msg.get('id', '')) or f"{session_id}_{idx}",
+                    'role': msg.get('role', 'unknown'),
+                    'message': msg.get('message', ''),
+                    'timestamp': msg.get('timestamp', datetime.min).isoformat()
+                } for idx, msg in enumerate(messages)
+            ]
+        })
+    except Exception as e:
+        logger.error(f"Error fetching conversation {session_id}: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# API to delete conversations
+@app.route('/api/admin/conversations/delete', methods=['POST'])
+@login_required
+def delete_conversations():
+    try:
+        session_ids = request.json.get('session_ids', [])
+        if not session_ids:
+            return jsonify({'status': 'error', 'message': 'No session IDs provided'}), 400
+        result = chat_history_collection.delete_many({'session_id': {'$in': session_ids}})
+        logger.info(f"Deleted {result.deleted_count} conversations")
+        return jsonify({'status': 'success', 'message': f'Deleted {result.deleted_count} conversations'})
+    except Exception as e:
+        logger.error(f"Error deleting conversations: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# API to export conversations as CSV
+@app.route('/api/admin/conversations/export', methods=['GET'])
+@login_required
+def export_conversations():
+    try:
+        conversations = chat_history_collection.find()
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(['Session ID', 'Role', 'Message', 'Timestamp'])
+        for conv in conversations:
+            session_id = conv.get('session_id', 'N/A')
+            for msg in conv.get('messages', []):
+                writer.writerow([
+                    session_id,
+                    msg.get('role', 'unknown'),
+                    msg.get('message', ''),
+                    msg.get('timestamp', datetime.min).isoformat()
+                ])
+        output.seek(0)
+        return send_file(
+            io.BytesIO(output.getvalue().encode('utf-8')),
+            mimetype='text/csv',
+            as_attachment=True,
+            download_name=f'conversations_export_{datetime.utcnow().isoformat()}.csv'
+        )
+    except Exception as e:
+        logger.error(f"Error exporting conversations: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# API for analytics
+@app.route('/api/admin/analytics', methods=['GET'])
+@login_required
+def get_analytics():
+    try:
+        total_conversations = chat_history_collection.count_documents({})
+        pipeline = [
+            {'$match': {'messages': {'$exists': True, '$ne': []}}},
+            {'$unwind': '$messages'},
+            {'$group': {
+                '_id': '$session_id',
+                'message_count': {'$sum': 1}
+            }},
+            {'$group': {
+                '_id': None,
+                'avg_messages': {'$avg': '$message_count'},
+                'total_messages': {'$sum': '$message_count'}
+            }}
+        ]
+        stats = list(chat_history_collection.aggregate(pipeline))
+        analytics = {
+            'total_conversations': total_conversations,
+            'total_messages': stats[0]['total_messages'] if stats else 0,
+            'avg_messages_per_session': round(stats[0]['avg_messages'], 2) if stats else 0
+        }
+        return jsonify({'status': 'success', 'analytics': analytics})
+    except Exception as e:
+        logger.error(f"Error fetching analytics: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+    
     
 if __name__ == "__main__":
     app.run(debug=True, port=7000, host='0.0.0.0')

@@ -24,9 +24,9 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # MongoDB setup
 mongo_client = pymongo.MongoClient(os.getenv("MONGO_URI"))
-mongo_db = mongo_client["FAQ_chatbot"]
-embedding_collection = mongo_db["embeddings"]
-chat_history_collection = mongo_db["chat_history"]
+mongo_db = mongo_client[os.getenv("MONGO_DB_NAME")]
+embedding_collection = mongo_db[os.getenv("MONGO_EMBEDDING_COLLECTION")]
+chat_history_collection = mongo_db[os.getenv("MONGO_CHAT_HISTORY_COLLECTION")]
 
 # Create database indexes (runs once on module import)
 try:
@@ -366,7 +366,7 @@ def generate_suggestions(user_message: str, chat_history: list = None) -> list:
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[{"role": "system", "content": "Mobile repair expert AI"}, {"role": "user", "content": prompt}],
-            max_tokens=150, temperature=0.5
+            max_tokens=150, temperature=0.4
         )
         suggestions = [s.strip('- ').strip('"') for s in response.choices[0].message.content.strip().split('\n') if s.strip()]
         while len(suggestions) < 3:
