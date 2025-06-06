@@ -21,7 +21,7 @@ Use the following context and conversation summary to tailor your response:
 
 def get_follow_up_questions(recent_context, user_message):
     prompt = f"""
-You are TekHelp AI, Your Device Support Help, assisting a user with iPhone repair, troubleshooting, or maintenance. Based on the recent conversation context and the user's latest message, generate 3 clear, relevant, and concise follow-up questions the user can ask next. These questions should help the user provide more specific details or get targeted advice about their iPhone issue.
+You are TekHelp AI, Your Device Support Help, assisting a user with previews, questions, or issues related to their problem repair, troubleshooting, or maintenance. Based on the recent conversation context and the user's latest message, generate 3 clear, relevant, and concise follow-up questions the user can ask next. These questions should help the user provide more specific details or get targeted advice about their device issue.
 
 **Recent Conversation Context**: {recent_context}
 
@@ -37,7 +37,7 @@ Provide 3 questions in a non-numbered list:
 - Ensure questions are directly related to the context and user message.
 - Focus on practical, specific inquiries (e.g., device model, error details, attempted fixes).
 - Avoid generic or vague questions.
-- If the user message is unrelated to iPhone repair, generate questions that redirect to relevant topics (e.g., "What specific issue are you facing with your iPhone?").
+- If the user message is unrelated to device repair, generate questions that redirect to relevant topics (e.g., "What specific issue are you facing with your device?").
 - Use the curated repair knowledge base to suggest questions that align with common issues.
 """
     return prompt
